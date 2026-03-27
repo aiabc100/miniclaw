@@ -87,12 +87,15 @@ docker-compose down
 ```
 
 或使用 Docker 直接构建：
-
+注意：windows环境先打开docker desktop。
 ```bash
 # 构建镜像
 docker build -t miniclaw .
 
-# 运行容器
+# 运行cli容器,亲测有效
+docker run -it  -e ANTHROPIC_API_KEY="your_api_key_here"   miniclaw
+
+# 运行容器，测试失败，估计是网络未调通，以后再说，hehehe
 docker run -d -p 3000:3000 -e ANTHROPIC_API_KEY=your_api_key miniclaw
 ```
 
