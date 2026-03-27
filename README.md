@@ -71,6 +71,31 @@ curl -X POST http://localhost:3000/chat \
 
 服务启动后访问 `http://localhost:3000` 可使用内置的 Web 聊天界面。
 
+### Docker 部署
+
+使用 Docker Compose 一键部署：
+
+```bash
+# 构建并启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+```
+
+或使用 Docker 直接构建：
+
+```bash
+# 构建镜像
+docker build -t miniclaw .
+
+# 运行容器
+docker run -d -p 3000:3000 -e ANTHROPIC_API_KEY=your_api_key miniclaw
+```
+
 ## 项目结构
 
 ```
