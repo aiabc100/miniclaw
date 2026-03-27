@@ -11,9 +11,12 @@ console.log(process.env.ANTHROPIC_API_KEY);
 import express from 'express';
 import type { Request, Response } from 'express';
 import { MiniClawAgent } from './agent';
+import { loadSkills } from './skill-loader';
 
 const app = express();
 app.use(express.json());
+
+let loadedSkills: any[] = [];
 
 app.get('/', (req: Request, res: Response) => {
   res.send(`
@@ -113,7 +116,7 @@ function getOrCreateAgent(sessionId: string): MiniClawAgent {
       model: 'GLM-4-Flash',
       apiKey: process.env.ANTHROPIC_API_KEY!,
       systemPrompt: '你是 MiniClaw，一个有用的 AI 助手。',
-      tools: [],
+      tools: loadedSkills,
       maxIterations: 10
     }));
   }
@@ -138,6 +141,15 @@ app.post('/chat', async (req: Request, res: Response) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`MiniClaw 服务运行在 http://localhost:${PORT}`);
-});
+
+async function startServer() {
+  console.log('正在加载 skills...');
+  loadedSkills = await loadSkills();
+  console.log(`已加载 ${loadedSkills.length} 个 skill`);
+  
+  app.listen(PORT, () => {
+    console.log(`MiniClaw 服务运行在 http://localhost:${PORT}`);
+  });
+}
+
+startServer();

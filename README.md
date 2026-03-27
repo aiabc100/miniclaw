@@ -1,10 +1,11 @@
 # MiniClaw
 
-一个轻量级的 AI Agent 框架，支持工具调用、流式响应和多轮对话。基于 TypeScript 开发，使用 Bun 运行时。
+一个轻量级的 AI Agent 框架，支持工具调用、流式响应、多轮对话和动态 Skill 加载。基于 TypeScript 开发，使用 Bun 运行时。
 
 ## 特性
 
 - **Agent 循环机制** - 自动进行多轮工具调用直到任务完成
+- **动态 Skill 加载** - 通过 Markdown 文件定义 Skill，启动时自动加载
 - **内置工具** - Shell 命令执行、文件读写、网络请求、计算器
 - **流式响应** - 实时输出 AI 回复，提升用户体验
 - **多模型支持** - 支持 GLM、MiniMax、DeepSeek 等 OpenAI 兼容 API
@@ -73,29 +74,16 @@ curl -X POST http://localhost:3000/chat \
 
 ### Docker 部署
 
-使用 Docker Compose 一键部署：
+注意：Windows 环境先打开 Docker Desktop。
 
-```bash
-# 构建并启动
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
-```
-
-或使用 Docker 直接构建：
-注意：windows环境先打开docker desktop。
 ```bash
 # 构建镜像
 docker build -t miniclaw .
 
-# 运行cli容器,亲测有效
-docker run -it  -e ANTHROPIC_API_KEY="your_api_key_here"   miniclaw
+# 运行 CLI 容器
+docker run -it -e ANTHROPIC_API_KEY="your_api_key_here" miniclaw
 
-# 运行容器，测试失败，估计是网络未调通，以后再说，hehehe
+# 运行服务容器
 docker run -d -p 3000:3000 -e ANTHROPIC_API_KEY=your_api_key miniclaw
 ```
 
@@ -103,14 +91,103 @@ docker run -d -p 3000:3000 -e ANTHROPIC_API_KEY=your_api_key miniclaw
 
 ```
 miniclaw/
-├── agent.ts        # Agent 核心逻辑（循环、工具调用）
-├── llm-client.ts   # LLM API 客户端（支持流式响应）
-├── tools.ts        # 内置工具定义
-├── types.ts        # TypeScript 类型定义
-├── cli.ts          # 命令行界面
-├── server.ts       # HTTP 服务
-├── .env.example    # 环境变量模板
-└── .env            # 环境变量（不提交到 Git）
+├── agent.ts          # Agent 核心逻辑（循环、工具调用）
+├── llm-client.ts     # LLM API 客户端（支持流式响应）
+├── tools.ts          # 内置工具定义
+├── types.ts          # TypeScript 类型定义
+├── skill-loader.ts   # 动态 Skill 加载器
+├── cli.ts            # 命令行界面
+├── server.ts         # HTTP 服务
+├── skills/           # Skill 定义目录
+│   ├── weather.md    # 天气查询 Skill
+│   └── skill-creator.md  # Skill 创建器
+├── .env.example      # 环境变量模板
+└── .env              # 环境变量（不提交到 Git）
+```
+
+## Skill 系统
+
+### Skill 文件格式
+
+使用 YAML frontmatter + Markdown 格式定义 Skill：
+
+```markdown
+---
+id: my-skill
+name: 我的技能
+version: 1.0.0
+description: 技能描述
+author: 作者
+tags: [标签1, 标签2]
+createdAt: 2024-01-01
+updatedAt: 2024-01-15
+---
+
+# 我的技能
+
+技能详细描述...
+
+## 参数定义
+
+```json
+{
+  "input": {
+    "type": "string",
+    "description": "输入参数描述",
+    "required": true
+  }
+}
+```
+
+## 示例
+
+```json
+[{ "input": "示例输入", "output": "示例输出", "description": "示例说明" }]
+```
+
+## 实现代码
+
+```typescript
+async function execute(params, context) {
+  const startTime = Date.now();
+  try {
+    // 实现逻辑
+    return {
+      success: true,
+      data: {},
+      message: "执行成功",
+      executionTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "执行失败",
+      executionTime: Date.now() - startTime
+    };
+  }
+}
+```
+```
+
+### 内置 Skill
+
+| Skill | 描述 |
+|-------|------|
+| `weather` | 查询指定城市的实时天气信息 |
+| `skill-creator` | 根据自然语言描述自动生成 Skill 文件 |
+
+### 添加自定义 Skill
+
+1. 在 `skills/` 目录下创建 `.md` 文件
+2. 按照上述格式定义 Skill
+3. 重启服务，自动加载
+
+或使用 `skill-creator` 自动生成：
+
+```
+用户: 帮我创建一个查询股票价格的技能
+Agent: [调用 skill-creator]
+       已创建技能文件: skills/stock.md
 ```
 
 ## 内置工具
@@ -131,12 +208,12 @@ miniclaw/
 
 ```typescript
 const agent = new MiniClawAgent({
-  model: 'GLM-4-Flash',           // 模型名称
+  model: 'GLM-4-Flash',
   apiKey: process.env.ANTHROPIC_API_KEY,
-  apiEndpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', // 可选
+  apiEndpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
   systemPrompt: '你是一个有用的 AI 助手。',
-  tools: [],                       // 额外工具
-  maxIterations: 10                // 最大迭代次数
+  tools: [],
+  maxIterations: 10
 });
 ```
 
@@ -147,34 +224,6 @@ const agent = new MiniClawAgent({
 | 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | GLM-4-Flash |
 | MiniMax | `https://api.minimax.chat/v1/chat/completions` | MiniMax-M2 |
 | DeepSeek | `https://api.deepseek.com/chat/completions` | deepseek-chat |
-
-### 添加自定义工具
-
-```typescript
-import type { Tool } from './types';
-
-const myTool: Tool = {
-  name: 'my_tool',
-  description: '工具描述',
-  parameters: {
-    type: 'object',
-    properties: {
-      param1: { type: 'string', description: '参数描述' }
-    },
-    required: ['param1']
-  },
-  async execute(args) {
-    // 工具逻辑
-    return '执行结果';
-  }
-};
-
-// 在创建 Agent 时传入
-const agent = new MiniClawAgent({
-  // ...
-  tools: [myTool]
-});
-```
 
 ## Agent 工作流程
 
@@ -210,7 +259,6 @@ bun run cli.ts
 # 运行服务
 bun run server.ts
 ```
-<img width="422" height="348" alt="image" src="https://github.com/user-attachments/assets/024217f7-cb9a-4102-9ae2-e5d81ccfea18" />
 
 ## License
 

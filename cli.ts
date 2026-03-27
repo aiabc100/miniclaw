@@ -12,6 +12,7 @@ console.log(process.env.ANTHROPIC_API_KEY);
 
 import * as readline from 'readline';
 import { MiniClawAgent } from './agent';
+import { loadSkills } from './skill-loader';
 
 async function main() {
   // 从环境变量获取 API Key
@@ -20,6 +21,11 @@ async function main() {
     console.error('请设置 ANTHROPIC_API_KEY 环境变量');
     process.exit(1);
   }
+
+  // 动态加载 skills 目录下的工具
+  console.log('正在加载 skills...');
+  const skillTools = await loadSkills();
+  console.log(`已加载 ${skillTools.length} 个 skill\n`);
 
   // 创建 Agent 实例
   const agent = new MiniClawAgent({
@@ -31,9 +37,10 @@ async function main() {
 - 读取和写入文件
 - 进行网络请求
 - 数学计算
+- 查询天气信息
 
 请简洁、准确地回答问题，必要时使用工具完成任务。`,
-    tools: [],  // 使用内置工具
+    tools: skillTools,
     maxIterations: 10
   });
 
