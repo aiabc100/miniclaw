@@ -210,6 +210,7 @@ bun run cli.ts
 # 运行服务
 bun run server.ts
 ```
+<img width="422" height="348" alt="image" src="https://github.com/user-attachments/assets/024217f7-cb9a-4102-9ae2-e5d81ccfea18" />
 
 ## License
 
