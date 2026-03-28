@@ -83,7 +83,7 @@ docker build -t miniclaw .
 # 运行 CLI 容器
 docker run -it -e ANTHROPIC_API_KEY="your_api_key_here" miniclaw
 
-# 运行服务容器
+# 运行服务容器,测试失败，估计是docker网络未调通，以后再说，hehehe
 docker run -d -p 3000:3000 -e ANTHROPIC_API_KEY=your_api_key miniclaw
 ```
 
